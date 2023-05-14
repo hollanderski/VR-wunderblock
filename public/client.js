@@ -1,5 +1,139 @@
 import * as THREE from 'three';
 
+
+const _position = new THREE.Vector3();
+const _quaternion =  new THREE.Quaternion();
+const _scale = new THREE.Vector3();
+const _orientation = new THREE.Vector3();
+var mypositionxyz =  new THREE.Vector3();
+
+class PositionalAudio2 extends THREE.Audio {
+
+    constructor( listener, myposition ) {
+
+        super( listener );
+
+        this.panner = this.context.createPanner();
+        this.panner.setPosition(myposition.x, myposition.y, myposition.z);
+        this.panner.panningModel = 'HRTF';
+        this.panner.connect( this.gain );
+
+        this.myposition = myposition;
+
+        
+
+    }
+
+
+
+    disconnect() {
+
+        super.disconnect();
+
+        this.panner.disconnect( this.gain );
+
+    }
+
+    getOutput() {
+
+        return this.panner;
+
+    }
+
+    getRefDistance() {
+
+        return this.panner.refDistance;
+
+    }
+
+    setRefDistance( value ) {
+
+        this.panner.refDistance = value;
+
+        return this;
+
+    }
+
+    getRolloffFactor() {
+
+        return this.panner.rolloffFactor;
+
+    }
+
+    setRolloffFactor( value ) {
+
+        this.panner.rolloffFactor = value;
+
+        return this;
+
+    }
+
+    getDistanceModel() {
+
+        return this.panner.distanceModel;
+
+    }
+
+    setDistanceModel( value ) {
+
+        this.panner.distanceModel = value;
+
+        return this;
+
+    }
+
+    getMaxDistance() {
+
+        return this.panner.maxDistance;
+
+    }
+
+    setMaxDistance( value ) {
+
+        this.panner.maxDistance = value;
+
+        return this;
+
+    }
+
+    setDirectionalCone( coneInnerAngle, coneOuterAngle, coneOuterGain ) {
+
+
+        this.panner.coneInnerAngle = coneInnerAngle;
+        this.panner.coneOuterAngle = coneOuterAngle;
+        this.panner.coneOuterGain = coneOuterGain;
+
+        return this;
+
+    }
+
+    updateMatrixWorld( force ) {
+
+        //console.log(this.parent.geometry.attributes)
+        //return
+
+
+        super.updateMatrixWorld( force );
+
+        if ( this.hasPlaybackControl === true && this.isPlaying === false ) return;
+
+        //console.log(myposition)
+
+        //this.matrixWorld.decompose( _position, _quaternion, _scale );
+
+        this.matrixWorld.decompose( this.myposition, _quaternion, _scale );
+
+        _orientation.set( 0, 0, 1 ).applyQuaternion( _quaternion );
+
+
+        const panner = this.panner;
+    }
+
+}
+
+
+
+
 import { OrbitControls } from './jsm/controls/OrbitControls.js'
 import { VRButton } from './jsm/webxr/VRButton.js'
 import { OBJLoader } from './jsm/loaders/OBJLoader.js';
@@ -17,6 +151,7 @@ let camera, scene, raycaster, renderer, mouseHelper, sampler;
 let controller1, controller2;
 let controllerGrip1, controllerGrip2;
 let room, marker, floor, baseReferenceSpace;
+let listener;
 
 let firstTime = true;
 
@@ -39,21 +174,19 @@ const params = {
 };
 
 
-/*
 
-const getUsers = async () => {
-  const res = await fetch("http://localhost:3000/api/users/");
-  const users = await res.json()
+function createAudio(path) {
 
-  for (const user in users) {
-    console.log(users[user].name)
-  }
+    var sound = document.createElement('audio');
+    sound.id = path;
+    sound.preload = 'auto';
+    sound.loop = true;
+    sound.src = '/upload/audio/' + path + '.mp3';
+    sound.type = 'audio/mpeg';
+    sound.style.display = "none";
+    document.getElementById('song').appendChild(sound);
+
 }
-
-getUsers();
-
-*/
-
 
 function getData() {
     // if audio not in cache
@@ -63,38 +196,20 @@ function getData() {
 
 function loadAudio(data) {
 
-    traceData = JSON.parse(data).traceData; // + mettre en cache
+    traceData = JSON.parse(data).traceData; 
     jQuery.each(traceData, function(i, val) {
-
         genTrace(val);
-        //createAudio(val.sound);
+        createAudio(val);
     });
 
 }
-
-/*
-function createTraces(){
-
-    if(this.traceData){
-                    
-
-        jQuery.each(this.traceData, function(i, val) {
-             genTrace(val);
-        });
-
-    }
-    else{
-        console.log("ERROR")
-    }
-}
-*/
 
 
 var socket = io();
 
 socket.on("createTrace", function(message) {
 
-    //createAudio(message.sound);
+    createAudio(message.replace(/\.[^/.]+$/, ""));
 
     console.log("WESHHHH MA GUEULE")
     genTrace(message.replace(/\.[^/.]+$/, ""));
@@ -154,7 +269,7 @@ function genTrace(data) {
     const material = new THREE.MeshPhongMaterial({
         map: textureLoader.load('/upload/map/' + data + '.png'),
         bumpMap: textureLoader.load('/upload/bumpmap/' + data + '.png'),
-        bumpScale: 30,
+        bumpScale: 30, //  plus c est grand plus ca creuse la forme
         opacity: 0.6,
         depthWrite: false,
         alphaTest: 0.05,
@@ -169,9 +284,10 @@ function genTrace(data) {
 
 
 
-
+    // creation de la trace
     const m = new THREE.Mesh(new DecalGeometry(room.children[0], position, orientation, size), material);
 
+    // ci dessous bidouille pour gerer la "brillance"
     /*
     m.userData.freq = data.freq;
     var endDate = new Date();
@@ -183,13 +299,15 @@ function genTrace(data) {
     decals.push(m);
 
     */
+    
+    // ajout de la trace à la scene
     scene.add(m);
 
-    /*
-
+    
+    // ajout son 3D
     var nSound = getRandomInt(1, 3);
-    var sound = new THREE.PositionalAudio2(listener, position);
-    sound.setDirectionalCone(360, 360, 1.); //( 10, 90, 1. );
+    var sound = new PositionalAudio2(listener, position);
+    sound.setDirectionalCone(360, 360, 1.); //( 10, 90, 1. ); 
 
 
 
@@ -199,20 +317,19 @@ function genTrace(data) {
     var checkExist = setInterval(function() {
 
 
-        if (audioElem = document.getElementById(data.sound)) {
+        if (audioElem = document.getElementById(data)) {
 
 
             clearInterval(checkExist);
             audioElem.play();
             sound.setMediaElementSource(audioElem);
-            sound.setRefDistance(5);
+            sound.setRefDistance(5); // DISTANCE AUDIO (autourisation de bidouiller accordee a sydoudou)
             m.add(sound);
-
 
         }
     }, 100);
 
-    */
+
 
 }
 
@@ -254,12 +371,14 @@ class App {
 
     init() {
 
-
-        //camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 10 );
-        //camera.position.z = 4;
+        document.getElementById( 'startButton' ).style.display="none";
 
         camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 10 );
         camera.position.set( 0, 1, 3 );
+
+        listener = new THREE.AudioListener();
+        listener.setMasterVolume(0.5); // VOLUME (avant = 2)
+        camera.add( listener );
 
         scene = new THREE.Scene();
 
@@ -403,6 +522,7 @@ class App {
 
 }
 
+// manettes oculus
 function buildController(data) {
 
         console.log("ok")
@@ -486,10 +606,10 @@ function render() {
 
         tempMatrix.identity().extractRotation(controller1.matrixWorld);
 
-        THREE.Raycaster.ray.origin.setFromMatrixPosition(controller1.matrixWorld);
-        THREE.Raycaster.ray.direction.set(0, 0, -1).applyTHREE.Matrix4(tempMatrix);
+        raycaster.ray.origin.setFromMatrixPosition(controller1.matrixWorld);
+        raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
 
-        const intersects = THREE.Raycaster.intersectObjects([room]); // or floor
+        const intersects = raycaster.intersectObjects([room]); // or floor
 
         if (intersects.length > 0) {
 
@@ -503,10 +623,10 @@ function render() {
 
         tempMatrix.identity().extractRotation(controller2.matrixWorld);
 
-        THREE.Raycaster.ray.origin.setFromMatrixPosition(controller2.matrixWorld);
-        THREE.Raycaster.ray.direction.set(0, 0, -1).applyTHREE.Matrix4(tempMatrix);
+        raycaster.ray.origin.setFromMatrixPosition(controller2.matrixWorld);
+        raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
 
-        const intersects = THREE.Raycaster.intersectObjects([room]);
+        const intersects = raycaster.intersectObjects([room]);
 
         if (intersects.length > 0) {
 
@@ -525,5 +645,8 @@ function render() {
 }
 
 const app = new App();
-app.init();
+//app.init();
 
+// "start audio"
+const startButton = document.getElementById( 'startButton' );
+startButton.addEventListener( 'click', app.init );

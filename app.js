@@ -41,13 +41,6 @@ app.post("/postdata", (req, res) => {
     console.log(req.files.map)
     console.log(req.files.audio)
 
-    /*
-    const { files } = req.files;
-
-    // If no image submitted, exit
-    if (!files) return res.sendStatus(400);
-
-    */
 
     // Move the uploaded image to our upload folder
     req.files.bumpmap.mv(__dirname + '/public/upload/bumpmap/' + req.files.bumpmap.name);
@@ -65,6 +58,8 @@ app.get("/getdata", (req, res) => {
     var myData = fs.readdirSync(__dirname+'/public/upload/map');
     myData = myData.map(function(x){return x.replace(/\.[^/.]+$/, "");});
 
+    // TODO date fichier creation
+
     var data = { 
         traceData: myData
     } 
@@ -75,6 +70,6 @@ app.get("/getdata", (req, res) => {
 
 
 server.listen(3000, () => console.log('Visit http://127.0.0.1:3000'))
-//app.listen(3000, () => console.log('Visit http://127.0.0.1:3000'))
+
 
 

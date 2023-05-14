@@ -1,21 +1,4 @@
-import {
-    BoxGeometry,
-    Mesh,
-    MeshBasicMaterial,
-    PerspectiveCamera,
-    Scene,
-    WebGLRenderer,
-    AmbientLight,
-    PointLight,
-    DirectionalLight,
-    DirectionalLightHelper,
-    LineSegments,
-    LineBasicMaterial,
-    Matrix4,
-    CircleGeometry, PlaneGeometry, Raycaster, DoubleSide,
-    Quaternion, Vector3, Euler, MeshPhongMaterial, TextureLoader,
-    BufferGeometry, Float32BufferAttribute, AdditiveBlending, Line, RingGeometry, MeshNormalMaterial,
-} from 'three';
+import * as THREE from 'three';
 
 import { OrbitControls } from './jsm/controls/OrbitControls.js'
 import { VRButton } from './jsm/webxr/VRButton.js'
@@ -26,14 +9,9 @@ import { DecalGeometry } from './jsm/geometries/DecalGeometry.js';
 import { MeshSurfaceSampler } from './jsm/math/MeshSurfaceSampler.js';
 
 
-// ref : https://medium.com/@kl.yap/how-to-add-vr-to-any-three-js-website-709480457deb 
-// scale issuez webxr : https://github.com/mrdoob/three.js/issues/13225 
 // controls : 
-
-// https://discourse.threejs.org/t/orbitcontrols-stop-working-when-grouping-camera-for-xr/33756/7
 // https://threejs.org/examples/?q=vr#webxr_vr_teleport
 
-// NodeJS use both import and require : https://www.kindacode.com/article/node-js-how-to-use-import-and-require-in-the-same-file/?utm_content=cmp-true
 
 let camera, scene, raycaster, renderer, mouseHelper, sampler;
 let controller1, controller2;
@@ -43,11 +21,11 @@ let room, marker, floor, baseReferenceSpace;
 let firstTime = true;
 
 let INTERSECTION;
-const tempMatrix = new Matrix4();
-const orientation = new Euler();
-const size = new Vector3( 10, 10, 10 );
+const tempMatrix = new THREE.Matrix4();
+const orientation = new THREE.Euler();
+const size = new THREE.Vector3( 10, 10, 10 );
 
-const textureLoader = new TextureLoader();
+const textureLoader = new THREE.TextureLoader();
 
 
 const params = {
@@ -67,7 +45,7 @@ function toyTraces() {
         .setWeightAttribute('color')
         .build();
 
-    const _position = new Vector3();
+    const _position = new THREE.Vector3();
 
     // Sample randomly from the surface, creating an instance of the sample
     // geometry at each sample point.
@@ -93,7 +71,7 @@ function getRandomInt(min, max) {
 // Trace constructor 
 function genTrace(data) {
 
-    var position = new Vector3(data.x, data.y, data.z);
+    var position = new THREE.Vector3(data.x, data.y, data.z);
 
 
     orientation.copy(mouseHelper.rotation);
@@ -103,17 +81,17 @@ function genTrace(data) {
     const scale = params.minScale + Math.random() * (params.maxScale - params.minScale);
     size.set(scale, scale, scale);
 
-    const material = new MeshPhongMaterial({
+    const material = new THREE.MeshPhongMaterial({
         map: textureLoader.load('texture/cv/' + data.map),
         bumpMap: textureLoader.load('texture/cv/' + data.bumpmap),
-        //bumpScale: 30,
+        bumpScale: 30,
         opacity: 0.6,
         depthWrite: false,
         alphaTest: 0.05,
         shininess: 25,
         transparent: true,
         depthTest: true,
-        side: DoubleSide,
+        side: THREE.DoubleSide,
         polygonOffset: true,
         polygonOffsetFactor: -4,
         wireframe: false
@@ -122,7 +100,7 @@ function genTrace(data) {
 
 
 
-    const m = new Mesh(new DecalGeometry(room.children[0], position, orientation, size), material);
+    const m = new THREE.Mesh(new DecalGeometry(room.children[0], position, orientation, size), material);
 
     /*
     m.userData.freq = data.freq;
@@ -207,61 +185,61 @@ class App {
     init() {
 
 
-        //camera = new PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 10 );
+        //camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 10 );
         //camera.position.z = 4;
 
-        camera = new PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 10 );
+        camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 10 );
         camera.position.set( 0, 1, 3 );
 
-        scene = new Scene();
+        scene = new THREE.Scene();
 
-        mouseHelper = new Mesh( new BoxGeometry( 1, 1, 10 ), new MeshNormalMaterial() );
+        mouseHelper = new THREE.Mesh( new THREE.BoxGeometry( 1, 1, 10 ), new THREE.MeshNormalMaterial() );
         mouseHelper.rotateX( - Math.PI / 2 );
         mouseHelper.visible = false;
         scene.add( mouseHelper );
 
 
         // QUE LA LUMIERE SOIT 
-        const light = new AmbientLight( 0x404040 ); // soft white light
+        const light = new THREE.AmbientLight( 0x404040 ); // soft white light
         scene.add( light );
-        const pointLight = new PointLight( 0xff0000, 10, 100 );
+        const pointLight = new THREE.PointLight( 0xff0000, 10, 100 );
         pointLight.position.set( 50, 50, 50 );
         scene.add( pointLight );
 
-        const directionalLight = new DirectionalLight( 0xffffff, 0.5 );
+        const directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
         scene.add( directionalLight );
 
-        const geometry = new BoxGeometry();
-        const material = new MeshBasicMaterial();
+        const geometry = new THREE.BoxGeometry();
+        const material = new THREE.MeshBasicMaterial();
 
         //const mesh = new Mesh( geometry, material );
         //scene.add( mesh );
 /*
-        room = new LineSegments(
+        room = new THREE.LineSegments(
             new BoxLineGeometry( 6, 6, 6, 10, 10, 10 ).translate( 0, 3, 0 ),
-        new LineBasicMaterial( { color: 0x808080 } )
+        new THREE.LineBasicMaterial( { color: 0x808080 } )
         );
         scene.add( room );
 */
 
-        marker = new Mesh(
-            new CircleGeometry( 0.25, 32 ).rotateX( - Math.PI / 2 ),
-            new MeshBasicMaterial( { color: 0x808080 } )
+        marker = new THREE.Mesh(
+            new THREE.CircleGeometry( 0.25, 32 ).rotateX( - Math.PI / 2 ),
+            new THREE.MeshBasicMaterial( { color: 0x808080 } )
         );
         scene.add( marker );
 /*
         floor = new Mesh(
-            new PlaneGeometry( 4.8, 4.8, 2, 2 ).rotateX( - Math.PI / 2 ),
-            new MeshBasicMaterial( { color: 0x808080, transparent: true, opacity: 0.25 } )
+            new THREE.PlaneGeometry( 4.8, 4.8, 2, 2 ).rotateX( - Math.PI / 2 ),
+            new THREE.MeshBasicMaterial( { color: 0x808080, transparent: true, opacity: 0.25 } )
         );
         scene.add( floor );
 */
 
-        raycaster = new Raycaster();
+        raycaster = new THREE.Raycaster();
 
         
 
-        renderer = new WebGLRenderer( { antialias: true } );
+        renderer = new THREE.WebGLRenderer( { antialias: true } );
         renderer.xr.enabled = true; // VR
         renderer.setPixelRatio( window.devicePixelRatio );
         renderer.setSize( window.innerWidth, window.innerHeight );
@@ -293,7 +271,7 @@ class App {
                     z: -INTERSECTION.z,
                     w: 1
                 };
-                const offsetRotation = new Quaternion();
+                const offsetRotation = new THREE.Quaternion();
                 const transform = new XRRigidTransform(offsetPosition, offsetRotation);
                 const teleportSpaceOffset = baseReferenceSpace.getOffsetReferenceSpace(transform);
 
@@ -365,25 +343,25 @@ function buildController(data) {
 
                 case 'tracked-pointer':
 
-                    geometry = new BufferGeometry();
-                    geometry.setAttribute('position', new Float32BufferAttribute([0, 0, 0, 0, 0, -1], 3));
-                    geometry.setAttribute('color', new Float32BufferAttribute([0.5, 0.5, 0.5, 0, 0, 0], 3));
+                    geometry = new THREE.BufferGeometry();
+                    geometry.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, -1], 3));
+                    geometry.setAttribute('color', new THREE.Float32BufferAttribute([0.5, 0.5, 0.5, 0, 0, 0], 3));
 
-                    material = new LineBasicMaterial({
+                    material = new THREE.LineBasicMaterial({
                         vertexColors: true,
-                        blending: AdditiveBlending
+                        blending: THREE.AdditiveBlending
                     });
 
-                    return new Line(geometry, material);
+                    return new THREE.Line(geometry, material);
 
                 case 'gaze':
 
-                    geometry = new RingGeometry(0.02, 0.04, 32).translate(0, 0, -1);
-                    material = new MeshBasicMaterial({
+                    geometry = new THREE.RingGeometry(0.02, 0.04, 32).translate(0, 0, -1);
+                    material = new THREE.MeshBasicMaterial({
                         opacity: 0.5,
                         transparent: true
                     });
-                    return new Mesh(geometry, material);
+                    return new THREE.Mesh(geometry, material);
 
             }
 
@@ -432,10 +410,10 @@ function render() {
 
         tempMatrix.identity().extractRotation(controller1.matrixWorld);
 
-        raycaster.ray.origin.setFromMatrixPosition(controller1.matrixWorld);
-        raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+        THREE.Raycaster.ray.origin.setFromMatrixPosition(controller1.matrixWorld);
+        THREE.Raycaster.ray.direction.set(0, 0, -1).applyTHREE.Matrix4(tempMatrix);
 
-        const intersects = raycaster.intersectObjects([room]); // or floor
+        const intersects = THREE.Raycaster.intersectObjects([room]); // or floor
 
         if (intersects.length > 0) {
 
@@ -449,10 +427,10 @@ function render() {
 
         tempMatrix.identity().extractRotation(controller2.matrixWorld);
 
-        raycaster.ray.origin.setFromMatrixPosition(controller2.matrixWorld);
-        raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+        THREE.Raycaster.ray.origin.setFromMatrixPosition(controller2.matrixWorld);
+        THREE.Raycaster.ray.direction.set(0, 0, -1).applyTHREE.Matrix4(tempMatrix);
 
-        const intersects = raycaster.intersectObjects([room]);
+        const intersects = THREE.Raycaster.intersectObjects([room]);
 
         if (intersects.length > 0) {
 

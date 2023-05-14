@@ -141,6 +141,7 @@ import { XRControllerModelFactory } from './jsm/webxr/XRControllerModelFactory.j
 import { BoxLineGeometry } from './jsm/geometries/BoxLineGeometry.js';
 import { DecalGeometry } from './jsm/geometries/DecalGeometry.js';
 import { MeshSurfaceSampler } from './jsm/math/MeshSurfaceSampler.js';
+import { PositionalAudioHelper } from './jsm/helpers/PositionalAudioHelper.js';
 
 
 // controls : 
@@ -211,11 +212,13 @@ socket.on("createTrace", function(message) {
 
     createAudio(message.replace(/\.[^/.]+$/, ""));
 
-    console.log("WESHHHH MA GUEULE")
+    console.log("MESHHHH MA GUEULE")
     genTrace(message.replace(/\.[^/.]+$/, ""));
 
 
 });
+
+// Pour tester 10 traces:
 
 function toyTraces() {
 
@@ -309,6 +312,11 @@ function genTrace(data) {
     var sound = new PositionalAudio2(listener, position);
     sound.setDirectionalCone(360, 360, 1.); //( 10, 90, 1. ); 
 
+    /*
+    sound.setRefDistance(0.5); 
+    const helper = new PositionalAudioHelper( sound );
+    sound.add( helper );
+    */
 
 
     var audioElem = null;
@@ -323,7 +331,7 @@ function genTrace(data) {
             clearInterval(checkExist);
             audioElem.play();
             sound.setMediaElementSource(audioElem);
-            sound.setRefDistance(5); // DISTANCE AUDIO (autourisation de bidouiller accordee a sydoudou)
+            sound.setRefDistance(0.5); // DISTANCE AUDIO (autourisation de bidouiller accordee a sydoudou) 5
             m.add(sound);
 
         }
@@ -398,36 +406,18 @@ class App {
         const directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
         scene.add( directionalLight );
 
-        const geometry = new THREE.BoxGeometry();
-        const material = new THREE.MeshBasicMaterial();
 
-        //const mesh = new Mesh( geometry, material );
-        //scene.add( mesh );
-/*
-        room = new THREE.LineSegments(
-            new BoxLineGeometry( 6, 6, 6, 10, 10, 10 ).translate( 0, 3, 0 ),
-        new THREE.LineBasicMaterial( { color: 0x808080 } )
-        );
-        scene.add( room );
-*/
-
+        // point manette téléportation
         marker = new THREE.Mesh(
             new THREE.CircleGeometry( 0.25, 32 ).rotateX( - Math.PI / 2 ),
             new THREE.MeshBasicMaterial( { color: 0x808080 } )
         );
         scene.add( marker );
-/*
-        floor = new Mesh(
-            new THREE.PlaneGeometry( 4.8, 4.8, 2, 2 ).rotateX( - Math.PI / 2 ),
-            new THREE.MeshBasicMaterial( { color: 0x808080, transparent: true, opacity: 0.25 } )
-        );
-        scene.add( floor );
-*/
 
         raycaster = new THREE.Raycaster();
 
         
-
+        // VR renderer 
         renderer = new THREE.WebGLRenderer( { antialias: true } );
         renderer.xr.enabled = true; // VR
         renderer.setPixelRatio( window.devicePixelRatio );
@@ -441,7 +431,7 @@ class App {
 
         const controls = new OrbitControls( camera, renderer.domElement );
 
-        // controllers
+        // controllers manette
         function onSelectStart() {
 
             this.userData.isSelecting = true;
@@ -585,8 +575,7 @@ function animate() {
 function render() {
 
     if(room!=undefined && firstTime){
-        //console.log("room ok 2");
-        //console.log(room.children[0])
+
         //toyTraces();
 
         sampler = new MeshSurfaceSampler(room.children[0])

@@ -13,6 +13,21 @@ var bodyParser = require('body-parser');
 app.use(bodyParser.json()); 
 app.use(bodyParser.urlencoded({ extended: false })); 
 app.use(fileUpload());
+
+var fs = require('fs');
+
+var server = require('http').createServer(app);
+const io = require('socket.io')(server, {
+    cors: {
+        origin: "localhost",
+        methods: ["GET", "POST"],
+        transports: ['websocket', 'polling'],
+        credentials: true
+    },
+    allowEIO3: true
+});
+
+
   
 app.post("/postdata", (req, res) => { 
 
@@ -35,22 +50,31 @@ app.post("/postdata", (req, res) => {
     */
 
     // Move the uploaded image to our upload folder
-    req.files.bumpmap.mv(__dirname + '/upload/' + req.files.bumpmap.name);
-    req.files.map.mv(__dirname + '/upload/' + req.files.map.name);
-    req.files.audio.mv(__dirname + '/upload/' + req.files.audio.name);
+    req.files.bumpmap.mv(__dirname + '/public/upload/bumpmap/' + req.files.bumpmap.name);
+    req.files.map.mv(__dirname + '/public/upload/map/' + req.files.map.name);
+    req.files.audio.mv(__dirname + '/public/upload/audio/' + req.files.audio.name);
+
+    io.sockets.emit("createTrace", req.files.map.name);
 
  
     res.send("process complete"); 
 }); 
  
 app.get("/getdata", (req, res) => { 
-    var data = { // this is the data you're sending back during the GET request 
-        data1: "mee", 
-        data2: "po" 
+
+    var myData = fs.readdirSync(__dirname+'/public/upload/map');
+    myData = myData.map(function(x){return x.replace(/\.[^/.]+$/, "");});
+
+    var data = { 
+        traceData: myData
     } 
+    console.log("to send", data)
     res.status(200).json(data) 
 }); 
   
 
 
-app.listen(3000, () => console.log('Visit http://127.0.0.1:3000'))
+server.listen(3000, () => console.log('Visit http://127.0.0.1:3000'))
+//app.listen(3000, () => console.log('Visit http://127.0.0.1:3000'))
+
+

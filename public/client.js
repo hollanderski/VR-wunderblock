@@ -12,7 +12,7 @@ import { MeshSurfaceSampler } from './jsm/math/MeshSurfaceSampler.js';
 // controls : 
 // https://threejs.org/examples/?q=vr#webxr_vr_teleport
 
-
+let traceData; 
 let camera, scene, raycaster, renderer, mouseHelper, sampler;
 let controller1, controller2;
 let controllerGrip1, controllerGrip2;
@@ -39,6 +39,69 @@ const params = {
 };
 
 
+/*
+
+const getUsers = async () => {
+  const res = await fetch("http://localhost:3000/api/users/");
+  const users = await res.json()
+
+  for (const user in users) {
+    console.log(users[user].name)
+  }
+}
+
+getUsers();
+
+*/
+
+
+function getData() {
+    // if audio not in cache
+    fetch("http://localhost:3000/getdata").then(req => req.text()).then(loadAudio);
+}
+
+
+function loadAudio(data) {
+
+    traceData = JSON.parse(data).traceData; // + mettre en cache
+    jQuery.each(traceData, function(i, val) {
+
+        genTrace(val);
+        //createAudio(val.sound);
+    });
+
+}
+
+/*
+function createTraces(){
+
+    if(this.traceData){
+                    
+
+        jQuery.each(this.traceData, function(i, val) {
+             genTrace(val);
+        });
+
+    }
+    else{
+        console.log("ERROR")
+    }
+}
+*/
+
+
+var socket = io();
+
+socket.on("createTrace", function(message) {
+
+    //createAudio(message.sound);
+
+    console.log("WESHHHH MA GUEULE")
+    genTrace(message.replace(/\.[^/.]+$/, ""));
+
+
+});
+
 function toyTraces() {
 
     sampler = new MeshSurfaceSampler(room.children[0])
@@ -62,6 +125,12 @@ function toyTraces() {
 
 }
 
+function genPos(){
+    const _position = new THREE.Vector3();
+    sampler.sample(_position);
+    return _position;
+}
+
 function getRandomInt(min, max) {
     min = Math.ceil(min);
     max = Math.floor(max);
@@ -71,7 +140,8 @@ function getRandomInt(min, max) {
 // Trace constructor 
 function genTrace(data) {
 
-    var position = new THREE.Vector3(data.x, data.y, data.z);
+    console.log("gen trace ", data)
+    var position = genPos(); //new THREE.Vector3(data.x, data.y, data.z);
 
 
     orientation.copy(mouseHelper.rotation);
@@ -82,8 +152,8 @@ function genTrace(data) {
     size.set(scale, scale, scale);
 
     const material = new THREE.MeshPhongMaterial({
-        map: textureLoader.load('texture/cv/' + data.map),
-        bumpMap: textureLoader.load('texture/cv/' + data.bumpmap),
+        map: textureLoader.load('/upload/map/' + data + '.png'),
+        bumpMap: textureLoader.load('/upload/bumpmap/' + data + '.png'),
         bumpScale: 30,
         opacity: 0.6,
         depthWrite: false,
@@ -397,7 +467,13 @@ function render() {
     if(room!=undefined && firstTime){
         //console.log("room ok 2");
         //console.log(room.children[0])
-        toyTraces();
+        //toyTraces();
+
+        sampler = new MeshSurfaceSampler(room.children[0])
+        .setWeightAttribute('color')
+        .build();
+
+        getData();
         firstTime = false;
     }
 
